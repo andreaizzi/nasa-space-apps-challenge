@@ -1,0 +1,26 @@
+[
+    {
+      "name": "Water Availability",
+      "status": "Awesome",
+      "level": "90%",
+      "progress": 17.5
+    },
+    {
+      "name": "Soil Moisture",
+      "status": "Bad",
+      "level": "20%",
+      "progress": 10.8
+    },
+    {
+      "name": "Precipitations",
+      "status": "Fair",
+      "level": "45%",
+      "progress": 21.3
+    },
+    {
+      "name": "Vegetation Index",
+      "status": "Good",
+      "level": "3.5",
+      "progress": 100
+    }
+  ]

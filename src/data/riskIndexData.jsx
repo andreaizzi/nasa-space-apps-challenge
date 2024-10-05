@@ -12,8 +12,8 @@ const secondLastValue = data[data.length - 2];
 // Calculate the difference
 const isPositive = lastValue <= 6.0;
 
-const weekdayPos = [7, 1, 2, 3, 4, 5, 6];
-const weekday = ["Mon", "Tue", "Wed", "Tue", "Fri", "Sat", "Sun"];
+const weekdayPos = [7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6];
+const weekday = ["Sun", "Mon", "Tue", "Wed", "Tue", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Tue", "Fri", "Sat", "Sun"];
 
 const d = new Date();
 let day = weekdayPos[d.getDay()];
@@ -39,7 +39,7 @@ let day = weekdayPos[d.getDay()];
       theme: "dark",
     },
     xaxis: {
-      categories: [weekday[day], weekday[day-6], weekday[day-5], weekday[day-4], weekday[day-3], weekday[day-2], weekday[day-1]],
+      categories: [weekday[day+1], weekday[day+2], weekday[day+3], weekday[day+4], weekday[day+5], weekday[day+6], weekday[day]],
       show: false,
       labels: {
         show: true,

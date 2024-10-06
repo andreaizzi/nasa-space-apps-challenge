@@ -33,8 +33,8 @@ export default function RiskIndex(props) {
   return (
     <Card align='center' direction='column' w='100%' {...rest}>
       <Flex align={{ base: "start", xl: "start" }}
-            justify={{ base: "start", xl: "start" }}
-            alignItems="center">
+            justify={{ base: "space-between", xl: "space-between" }}
+            alignItems="center" w="100%">
 
       
 
@@ -45,10 +45,8 @@ export default function RiskIndex(props) {
                 iconColor={"#03C46B"}
               />
             </Box>
-      
-        <Flex flexDirection='column' align='start' me='20px'>
+        <Flex flexDirection='column' align='center' w='100%'>
           <Flex w='100%'>
-              
             <Text
               me='auto'
               color='secondaryGray.600'
@@ -57,7 +55,8 @@ export default function RiskIndex(props) {
               Crop Health Score
             </Text>
           </Flex>
-          <Flex align='end'>
+
+          <Flex align='end' w='100%'> 
             <Text
               color={textColor}
               fontSize='64px'
@@ -65,6 +64,7 @@ export default function RiskIndex(props) {
               lineHeight='100%'>
               5.7
             </Text>
+
             <Text
               ms='6px'
               color='secondaryGray.600'
@@ -74,7 +74,8 @@ export default function RiskIndex(props) {
             </Text>
           </Flex>
         </Flex>
-        <Flex align='center'>
+        
+        <Flex align='end' ms='6px' alignItems='center'>
         <Icon  as={isPositive ? RiArrowUpSFill : RiArrowDownSFill} 
         color={isPositive ? 'green.500' : 'red.500'} 
         />

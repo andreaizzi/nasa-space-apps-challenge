@@ -8,6 +8,25 @@ const createBasicAuthToken = (username, password) => {
   return `Basic ${token}`;
 };
 
+function getNearestPastQuarterHour() {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const roundedMinutes = Math.floor(minutes / 15) * 15;
+  
+  now.setMinutes(roundedMinutes);
+  now.setSeconds(0);
+  now.setMilliseconds(0);
+  
+  // Format the date as per the specified format
+  const offset = -now.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offset);
+  const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+  const offsetMinutes = String(absOffset % 60).padStart(2, '0');
+  
+  return now.toISOString().slice(0, 19) + `.000${sign}${offsetHours}:${offsetMinutes}`;
+}
+
 const meteomaticsApiClient = axios.create({
   baseURL: process.env.REACT_APP_METEOMATICS_API_ENDPOINT,
   headers: {
@@ -17,9 +36,10 @@ const meteomaticsApiClient = axios.create({
 });
 // https://api.meteomatics.com/2024-10-06T11:30:00.000+02:00/t_-150cm:C,soil_moisture_index_-150cm:idx,precip_3h:mm/44.8872071,11.0661063/json?model=mix
 
-const getMeteomaticsData = async ({ date, lat, long }) => {
+const getMeteomaticsData = async ({ lat, long }) => {
   try {
-    const { data } = await meteomaticsApiClient.get(`/2024-10-06T11:30:00.000+02:00/t_-150cm:C,soil_moisture_index_-150cm:idx,precip_3h:mm/${lat},${long}/json?model=mix`);
+    const date = getNearestPastQuarterHour();
+    const { data } = await meteomaticsApiClient.get(`/${date}/t_-150cm:C,soil_moisture_index_-150cm:idx,precip_3h:mm,global_rad:W/${lat},${long}/json?model=mix`);
     return data;
   } catch (error) {
     console.log('Failed to retrieve data.');

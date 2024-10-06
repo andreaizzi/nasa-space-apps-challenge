@@ -1,171 +1,128 @@
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   SimpleGrid,
-  Spinner
+  Spinner,
+  Text,
+  Center,
 } from "@chakra-ui/react";
 import Alert from "components/alerts/Alert";
 import RiskIndex from "components/charts/RiskIndex";
 import ComplexTable from "components/tables/ComplexTable";
-import tableDataComplex from "data/complex-data.json";
 import { columnsDataComplex } from "views/admin/default/variables/columnsData";
 import alertsList from "data/alertData";
-import { MdHome } from "react-icons/md";
+import { MdEco } from "react-icons/md";
 import MapCard from "components/map/MapCard";
-import { getWaterIndex, getVegetationIndex, getLastVegetationIndex } from "api/nasaGlamApi";
-import { useState, useEffect } from "react";
+import { getWaterIndex, getVegetationIndex } from "api/nasaGlamApi";
 import { getMeteomaticsData } from "api/meteomaticsApi";
+import { calculateCropHealthScore } from "utils/formulas";
+import CitySelector from "components/map/CitySelector";
 
 const Dashboard = () => {
-  const [coordinates, setCoordinates] = useState({ lat: 10.719212, long: 44.736369 })
-  const date = '2024-09-21';
+  const [coordinates, setCoordinates] = useState({ lat: 40.7128, long: -74.0060 });
+  const [date] = useState('2024-09-21');
+  const [data, setData] = useState({
+    waterIndex: null,
+    vegetationIndex: null,
+    meteomaticsData: [],
+    cropHealthScore: null,
+  });
+  const [loading, setLoading] = useState({
+    water: true,
+    vegetation: true,
+    meteomatics: true,
+  });
+  const [error, setError] = useState({
+    water: null,
+    vegetation: null,
+    meteomatics: null,
+  });
 
-  // Independent states for water and vegetation index
-  const [waterIndex, setWaterIndex] = useState(null);
-  const [vegetationIndex, setVegetationIndex] = useState(null);
-  const [loadingWater, setLoadingWater] = useState(true);
-  const [loadingVegetation, setLoadingVegetation] = useState(true);
-  const [loadingMeteomatics, setLoadingMeteomatics] = useState(true);
-  const [errorWater, setErrorWater] = useState(null);
-  const [errorVegetation, setErrorVegetation] = useState(null);
-  const [errorMeteomatics, setErrorMeteomatics] = useState(null);
-  const [meteomaticsData, setMeteomaticsData] = useState([]);
+  const fetchData = useCallback(async () => {
+    setLoading({ water: true, vegetation: true, meteomatics: true });
+    setError({ water: null, vegetation: null, meteomatics: null });
 
-  // Fetch Water Index
-  useEffect(() => {
-    const fetchWaterIndex = async () => {
-      setLoadingWater(true);
-      setErrorWater(null);
-      try {
-        const waterData = await getWaterIndex({ date, ...coordinates });
-        setWaterIndex(waterData);
-      } catch (error) {
-        setErrorWater("Failed to fetch water index data");
-      } finally {
-        setLoadingWater(false);
-      }
-    };
+    try {
+      const [waterData, vegetationData, meteomaticsData] = await Promise.all([
+        getWaterIndex({ date, ...coordinates }),
+        getVegetationIndex({ date, ...coordinates }),
+        getMeteomaticsData({ ...coordinates }),
+      ]);
 
-    fetchWaterIndex();
-  }, [coordinates, date]);
+      const processedMeteomaticsData = processMeteomaticsData(meteomaticsData);
+      const waterIndex = processWaterIndex(waterData);
+      const vegetationIndex = processVegetationIndex(vegetationData);
+      
+      const cropHealthScore = calculateCropHealthScore(
+        processedMeteomaticsData.temperature,
+        processedMeteomaticsData.precipitation,
+        processedMeteomaticsData.solarRadiation,
+        vegetationIndex,
+        waterIndex
+      );
 
-  // Fetch Vegetation Index
-  useEffect(() => {
-    const fetchVegetationIndex = async () => {
-      setLoadingVegetation(true);
-      setErrorVegetation(null);
-      try {
-        const vegetationData = await getVegetationIndex({ date, ...coordinates });
-        setVegetationIndex(vegetationData);
-      } catch (error) {
-        setErrorVegetation("Failed to fetch vegetation index data");
-      } finally {
-        setLoadingVegetation(false);
-      }
-    };
-
-    fetchVegetationIndex();
-  }, [coordinates, date]);
-  console.log(waterIndex, vegetationIndex);
-
-  function temperatureToPercentage(temperature) {
-    const minTemp = 0;  // 0°C is the minimum
-    const maxTemp = 40; // 40°C is the maximum
-
-    // Ensure the temperature is within the expected range
-    if (temperature < minTemp) {
-        temperature = minTemp;
-    } else if (temperature > maxTemp) {
-        temperature = maxTemp;
+      setData({
+        waterIndex,
+        vegetationIndex,
+        meteomaticsData: processedMeteomaticsData.metrics,
+        cropHealthScore,
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError({
+        water: "Failed to fetch water index",
+        vegetation: "Failed to fetch vegetation index",
+        meteomatics: "Failed to fetch meteomatics data",
+      });
+    } finally {
+      setLoading({ water: false, vegetation: false, meteomatics: false });
     }
-
-    // Calculate the percentage
-    return (((temperature - minTemp) / (maxTemp - minTemp)) * 100).toFixed(2);
-}
-
-
-  // Fetch meteomatics data
-  useEffect(() => {
-    const fetchMeteomaticsData = async () => {
-      setLoadingMeteomatics(true);
-      setErrorMeteomatics(null);
-      try {
-        const meteomaticsData = await getMeteomaticsData({ date, ...coordinates });
-        const metrics = [];
-        console.log(meteomaticsData);
-        meteomaticsData.data.forEach((metric, index) => {
-          const parameter = metric.parameter;
-          const value = metric.coordinates[0].dates[0].value; // Value of the metric
-          const normalizedValue = (value * 100).toFixed(2); // Normalize the value to 0-100
-          if(parameter === 't_-150cm:C') {  // Soil Temperature
-            metrics.push({
-                name: "Soil Temperature",
-                level: value + '°C',
-                status: value > 18 ? "Awesome" : (normalizedValue > 10 ? "Fair" : "Bad"),
-                progress: temperatureToPercentage(value)
-              });
-          }
-          if(parameter === 'soil_moisture_index_-150cm:idx') {  // Soil Moisture
-            metrics.push({
-                name: "Soil Moisture",
-                level: normalizedValue + '%',
-                status: normalizedValue > 50 ? "Awesome" : (normalizedValue > 30 ? "Fair" : "Bad"),
-                progress: 0
-              });
-          }
-          if(parameter === 'precip_3h:mm') {  // Precipitation
-            metrics.push({
-                name: "Precipitation",
-                level: normalizedValue + '%',
-                status: normalizedValue > 70 ? "Awesome" : (normalizedValue > 50 ? "Fair" : "Bad"),
-                progress: normalizedValue
-              });
-          }
-        });
-        setMeteomaticsData([...meteomaticsData, ...metrics]);
-      } catch (error) {
-        setErrorMeteomatics("Failed to fetch meteomatics data");
-      } finally {
-        setLoadingMeteomatics(false);
-      }
-    };
-
-    fetchMeteomaticsData();
   }, [coordinates, date]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleCitySelect = (newCoordinates) => {
+    setCoordinates(newCoordinates);
+  };
+
+  if (Object.values(loading).some(Boolean)) {
+    return (
+      <Center h="100vh">
+        <Spinner />
+        <Text ml={3}>Loading data...</Text>
+      </Center>
+    );
+  }
+
+  if (Object.values(error).some(Boolean)) {
+    return (
+      <Center h="100vh">
+        <Text color="red.500">Error loading data. Please try again later.</Text>
+      </Center>
+    );
+  }
 
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
-    {loadingWater && <><Spinner /><br /><p>Loading water index...</p></>}
-    {errorWater && <p>errorWater</p>}
-    {waterIndex && <p>Water Index: {waterIndex.value}</p>}
-    {loadingVegetation && <><Spinner /><br /><p>Loading vegetation index...</p></>}
-    {errorVegetation && <p>errorVegetation</p>}
-    {vegetationIndex && <p>Vegetation Index: {vegetationIndex.value}</p>}
-    {loadingMeteomatics && <><Spinner /><br /><p>Loading meteomatics data...</p></>}
-    {errorVegetation && <p>errorMeteomatic</p>}
-    {meteomaticsData && <p>Meteomatics data: {JSON.stringify(meteomaticsData)}</p>}
-      <SimpleGrid
-        columns={{ base: 1, md: 2, lg: 4 }}
-        gap='20px'
-        mb='20px'>
-        <Alert
-          title="High Drought risk for the next week!"
-          body="The next week will be very dry, make sure to water your crops properly."
-          headerTitle="Drought Alert"
-          icon={MdHome}
-          iconColor="red.600"
-          bgIconColor="red.100" />
-        <Alert
-          title="High Drought risk for the next week!"
-          body="The next week will be very dry, make sure to water your crops properly."
-          headerTitle="Drought Alert"
-          icon={MdHome}
-          iconColor="red.600"
-          bgIconColor="red.100" />
+      <CitySelector onSelectCity={handleCitySelect} />
 
-        {/* Use map instead of forEach to render list */}
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap='20px' mb='20px' alignItems="start">
+        {data.cropHealthScore !== null && (
+          <RiskIndex
+            title="Crop Health Score"
+            value={data.cropHealthScore}
+            abbreviation="CHS"
+            icon={MdEco}
+            iconColor="#05CD99"
+            iconBg="#9EFFD2"
+          />
+        )}
+
         {alertsList.map(alert => (
           <Alert
-            key={alert.title} // Ensure unique key for each alert
+            key={alert.title}
             title={alert.title}
             body={alert.body}
             headerTitle={alert.headerTitle}
@@ -177,21 +134,77 @@ const Dashboard = () => {
         ))}
       </SimpleGrid>
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap='20px' mb='20px'>
-        <RiskIndex />
-        <RiskIndex />
-        <RiskIndex />
-      </SimpleGrid>
-
       <SimpleGrid columns={{ base: 1, md: 2 }} gap='20px' mb='20px'>
         <ComplexTable
           columnsData={columnsDataComplex}
-          tableData={meteomaticsData}
+          tableData={data.meteomaticsData}
         />
-        <MapCard />
+        <MapCard mapPos={[coordinates.lat, coordinates.long]} />
       </SimpleGrid>
     </Box>
   );
-}
+};
+
+// Helper functions
+const processMeteomaticsData = (meteomaticsData) => {
+  let temperature = 0;
+  let precipitation = 0;
+  let solarRadiation = 0;
+  const metrics = [];
+
+  meteomaticsData.data.forEach((metric) => {
+    const { parameter } = metric;
+    const value = metric.coordinates[0].dates[0].value;
+    const normalizedValue = (value * 100).toFixed(2);
+
+    switch (parameter) {
+      case 't_-150cm:C':
+        temperature = value;
+        metrics.push(createMetric("Soil Temperature", `${value}°C`, value, temperatureToPercentage(value)));
+        break;
+      case 'soil_moisture_index_-150cm:idx':
+        metrics.push(createMetric("Soil Moisture", `${normalizedValue}%`, normalizedValue));
+        break;
+      case 'precip_3h:mm':
+        precipitation = value;
+        metrics.push(createMetric("Precipitation", `${normalizedValue}%`, normalizedValue, normalizedValue));
+        break;
+      case 'global_rad:W':
+        solarRadiation = value;
+        metrics.push(createMetric("Solar Radiation", `${value}W`, value, (value / 1000) * 100));
+        break;
+    }
+  });
+
+  return { metrics, temperature, precipitation, solarRadiation };
+};
+
+const processWaterIndex = (waterData) => {
+  if (waterData?.value && waterData.value !== "No Data") {
+    return waterData.value;
+  }
+  return 0.5; // Default value
+};
+
+const processVegetationIndex = (vegetationData) => {
+  if (vegetationData?.value && vegetationData.value !== "No Data") {
+    return vegetationData.value;
+  }
+  return 0.5; // Default value
+};
+
+const createMetric = (name, level, value, progress = 0) => ({
+  name,
+  level,
+  status: value > 50 ? "Awesome" : (value > 30 ? "Fair" : "Bad"),
+  progress: progress.toFixed(2),
+});
+
+const temperatureToPercentage = (temperature) => {
+  const minTemp = 0;
+  const maxTemp = 40;
+  const clampedTemp = Math.min(Math.max(temperature, minTemp), maxTemp);
+  return ((clampedTemp - minTemp) / (maxTemp - minTemp)) * 100;
+};
 
 export default Dashboard;

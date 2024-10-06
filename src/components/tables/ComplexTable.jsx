@@ -1,3 +1,5 @@
+//c
+import React, { useMemo } from 'react';
 import {
     Box,
     Flex,
@@ -20,19 +22,16 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import Card from 'components/card/Card';
-import * as React from 'react';
 import { MdCancel, MdCheckCircle, MdOutlineError } from 'react-icons/md';
 
 const columnHelper = createColumnHelper();
 
-// const columns = columnsDataCheck;
-export default function ComplexTable(props) {
-    const { tableData } = props;
+export default function ComplexTable({ tableData }) {
     const [sorting, setSorting] = React.useState([]);
     const textColor = useColorModeValue('secondaryGray.900', 'white');
     const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100');
-    let defaultData = tableData;
-    const columns = [
+    
+    const columns = useMemo(() => [
         columnHelper.accessor('name', {
             id: 'name',
             header: () => (
@@ -106,8 +105,7 @@ export default function ComplexTable(props) {
                     color="gray.400"
                 >
                     LEVEL
-                </Text>
-            ),
+                </Text>),
             cell: (info) => (
                 <Text color={textColor} fontSize="sm" fontWeight="700">
                     {info.getValue()}
@@ -122,7 +120,9 @@ export default function ComplexTable(props) {
                     align="center"
                     fontSize={{ sm: '10px', lg: '12px' }}
                     color="gray.400"
-                ></Text>
+                >
+                    PROGRESS
+                </Text>
             ),
             cell: (info) => (
                 <Flex align="center">
@@ -136,10 +136,10 @@ export default function ComplexTable(props) {
                 </Flex>
             ),
         }),
-    ];
-    const [data, setData] = React.useState(() => [...defaultData]);
+    ], [textColor]);
+
     const table = useReactTable({
-        data,
+        data: tableData,
         columns,
         state: {
             sorting,
@@ -149,6 +149,7 @@ export default function ComplexTable(props) {
         getSortedRowModel: getSortedRowModel(),
         debugTable: true,
     });
+
     return (
         <Card
             flexDirection="column"
@@ -192,8 +193,8 @@ export default function ComplexTable(props) {
                                                     header.getContext(),
                                                 )}
                                                 {{
-                                                    asc: '',
-                                                    desc: '',
+                                                    asc: '🔼',
+                                                    desc: '🔽',
                                                 }[header.column.getIsSorted()] ?? null}
                                             </Flex>
                                         </Th>
@@ -205,7 +206,7 @@ export default function ComplexTable(props) {
                     <Tbody>
                         {table
                             .getRowModel()
-                            .rows.slice(0, 5)
+                            .rows.slice(0, 6)
                             .map((row) => {
                                 return (
                                     <Tr key={row.id}>

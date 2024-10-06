@@ -1,9 +1,23 @@
 export const barChartDataDailyTraffic = [
     {
       name: "Daily CHS",
-      data: [7, 6, 5, 5.2, 4, 4.2, 5.7],
+      data: [7, 6, 5, 5.2, 4, 7, 5.7],
     },
   ];
+
+const data = barChartDataDailyTraffic[0].data;
+const lastValue = data[data.length - 1];
+const secondLastValue = data[data.length - 2];
+
+// Calculate the difference
+const isPositive = lastValue <= 6.0;
+
+const weekdayPos = [7, 1, 2, 3, 4, 5, 6];
+const weekday = ["Mon", "Tue", "Wed", "Tue", "Fri", "Sat", "Sun"];
+
+const d = new Date();
+let day = weekdayPos[d.getDay()];
+
   
   export const barChartOptionsDailyTraffic = {
     chart: {
@@ -25,7 +39,7 @@ export const barChartDataDailyTraffic = [
       theme: "dark",
     },
     xaxis: {
-      categories: ["M", "T", "W", "T", "F", "S", "S"],
+      categories: [weekday[day], weekday[day-6], weekday[day-5], weekday[day-4], weekday[day-3], weekday[day-2], weekday[day-1]],
       show: false,
       labels: {
         show: true,
@@ -77,7 +91,7 @@ export const barChartDataDailyTraffic = [
         colorStops: [
           {
             offset: 0,
-            color: "#03C46B",  // Start with green
+            color:  isPositive ? "#03C46B" : "#C40303", 
             opacity: 1,        // Full opacity at the start
           },
           {
@@ -93,6 +107,7 @@ export const barChartDataDailyTraffic = [
     },
     plotOptions: {
       bar: {
+        
         borderRadius: 10,
         columnWidth: "20px",
       },

@@ -21,6 +21,8 @@ const LeafletMap = () => {
         attribution='&copy; NASA'
         opacity={0.5} // Set the opacity to 50%
       />
+      { /* NDVI: https://prod.glam2.app/tiles/mod09q1-ndvi/2024-09-21/{z}/{x}/{y}.png
+          NDWI: https://prod.glam2.app/tiles/mod09a1-ndwi/2024-09-21/{z}/{x}/{y}.png*/ }
     </MapContainer>
   );
 };

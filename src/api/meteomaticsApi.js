@@ -1,11 +1,10 @@
 // Resources
 // Documentation: https://www.meteomatics.com/en/api/getting-started/
 // URL Creator: https://meteomatics.com/url-creator/
-
-const { default: axios } = require("axios");
+import axios from 'axios';
 
 const createBasicAuthToken = (username, password) => {
-  const token = Buffer.from(`${username}:${password}`).toString('base64');
+  const token = btoa(username + ':' + password);
   return `Basic ${token}`;
 };
 
@@ -16,6 +15,17 @@ const meteomaticsApiClient = axios.create({
     'Content-Type': 'application/json', // Adjust as necessary
   },
 });
+// https://api.meteomatics.com/2024-10-06T11:30:00.000+02:00/t_-150cm:C,soil_moisture_index_-150cm:idx,precip_3h:mm/44.8872071,11.0661063/json?model=mix
+
+const getMeteomaticsData = async ({ date, lat, long }) => {
+  try {
+    const { data } = await meteomaticsApiClient.get(`/2024-10-06T11:30:00.000+02:00/t_-150cm:C,soil_moisture_index_-150cm:idx,precip_3h:mm/${lat},${long}/json?model=mix`);
+    return data;
+  } catch (error) {
+    console.log('Failed to retrieve data.');
+    throw error;
+  }
+}
 
 const getTemperature = async ({ date, lat, long }) => {
   try {
@@ -27,3 +37,5 @@ const getTemperature = async ({ date, lat, long }) => {
     throw error;
   }
 }
+
+export { getMeteomaticsData, getTemperature };

@@ -13,6 +13,7 @@ import { MdHome } from "react-icons/md";
 import MapCard from "components/map/MapCard";
 import { getWaterIndex, getVegetationIndex, getLastVegetationIndex } from "api/nasaGlamApi";
 import { useState, useEffect } from "react";
+import { getMeteomaticsData } from "api/meteomaticsApi";
 
 const Dashboard = () => {
   const [coordinates, setCoordinates] = useState({ lat: 10.719212, long: 44.736369 })
@@ -23,8 +24,11 @@ const Dashboard = () => {
   const [vegetationIndex, setVegetationIndex] = useState(null);
   const [loadingWater, setLoadingWater] = useState(true);
   const [loadingVegetation, setLoadingVegetation] = useState(true);
+  const [loadingMeteomatics, setLoadingMeteomatics] = useState(true);
   const [errorWater, setErrorWater] = useState(null);
   const [errorVegetation, setErrorVegetation] = useState(null);
+  const [errorMeteomatics, setErrorMeteomatics] = useState(null);
+  const [meteomaticsData, setMeteomaticsData] = useState([]);
 
   // Fetch Water Index
   useEffect(() => {
@@ -63,6 +67,71 @@ const Dashboard = () => {
   }, [coordinates, date]);
   console.log(waterIndex, vegetationIndex);
 
+  function temperatureToPercentage(temperature) {
+    const minTemp = 0;  // 0°C is the minimum
+    const maxTemp = 40; // 40°C is the maximum
+
+    // Ensure the temperature is within the expected range
+    if (temperature < minTemp) {
+        temperature = minTemp;
+    } else if (temperature > maxTemp) {
+        temperature = maxTemp;
+    }
+
+    // Calculate the percentage
+    return (((temperature - minTemp) / (maxTemp - minTemp)) * 100).toFixed(2);
+}
+
+
+  // Fetch meteomatics data
+  useEffect(() => {
+    const fetchMeteomaticsData = async () => {
+      setLoadingMeteomatics(true);
+      setErrorMeteomatics(null);
+      try {
+        const meteomaticsData = await getMeteomaticsData({ date, ...coordinates });
+        const metrics = [];
+        console.log(meteomaticsData);
+        meteomaticsData.data.forEach((metric, index) => {
+          const parameter = metric.parameter;
+          const value = metric.coordinates[0].dates[0].value; // Value of the metric
+          const normalizedValue = (value * 100).toFixed(2); // Normalize the value to 0-100
+          if(parameter === 't_-150cm:C') {  // Soil Temperature
+            metrics.push({
+                name: "Soil Temperature",
+                level: value + '°C',
+                status: value > 18 ? "Awesome" : (normalizedValue > 10 ? "Fair" : "Bad"),
+                progress: temperatureToPercentage(value)
+              });
+          }
+          if(parameter === 'soil_moisture_index_-150cm:idx') {  // Soil Moisture
+            metrics.push({
+                name: "Soil Moisture",
+                level: normalizedValue + '%',
+                status: normalizedValue > 50 ? "Awesome" : (normalizedValue > 30 ? "Fair" : "Bad"),
+                progress: 0
+              });
+          }
+          if(parameter === 'precip_3h:mm') {  // Precipitation
+            metrics.push({
+                name: "Precipitation",
+                level: normalizedValue + '%',
+                status: normalizedValue > 70 ? "Awesome" : (normalizedValue > 50 ? "Fair" : "Bad"),
+                progress: normalizedValue
+              });
+          }
+        });
+        setMeteomaticsData([...meteomaticsData, ...metrics]);
+      } catch (error) {
+        setErrorMeteomatics("Failed to fetch meteomatics data");
+      } finally {
+        setLoadingMeteomatics(false);
+      }
+    };
+
+    fetchMeteomaticsData();
+  }, [coordinates, date]);
+
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
     {loadingWater && <><Spinner /><br /><p>Loading water index...</p></>}
@@ -71,6 +140,9 @@ const Dashboard = () => {
     {loadingVegetation && <><Spinner /><br /><p>Loading vegetation index...</p></>}
     {errorVegetation && <p>errorVegetation</p>}
     {vegetationIndex && <p>Vegetation Index: {vegetationIndex.value}</p>}
+    {loadingMeteomatics && <><Spinner /><br /><p>Loading meteomatics data...</p></>}
+    {errorVegetation && <p>errorMeteomatic</p>}
+    {meteomaticsData && <p>Meteomatics data: {JSON.stringify(meteomaticsData)}</p>}
       <SimpleGrid
         columns={{ base: 1, md: 2, lg: 4 }}
         gap='20px'
@@ -113,9 +185,8 @@ const Dashboard = () => {
 
       <SimpleGrid columns={{ base: 1, md: 2 }} gap='20px' mb='20px'>
         <ComplexTable
-          rowSpan={2}
           columnsData={columnsDataComplex}
-          tableData={tableDataComplex}
+          tableData={meteomaticsData}
         />
         <MapCard />
       </SimpleGrid>

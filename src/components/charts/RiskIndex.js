@@ -1,8 +1,10 @@
 import React from "react";
-
+import PrettyIcon from "components/icons/PrettyIcon";
 // Chakra imports
 import { Box, Flex, Icon, Text, useColorModeValue } from "@chakra-ui/react";
 import BarChart from "components/charts/BarChart";
+
+import { MdEco } from "react-icons/md";
 
 // Custom components
 import Card from "components/card/Card.js";
@@ -12,17 +14,38 @@ import {
 } from "data/riskIndexData";
 
 // Assets
-import { RiArrowUpSFill } from "react-icons/ri";
+import { RiArrowUpSFill, RiArrowDownSFill } from 'react-icons/ri'; // Import both icons
 
 export default function RiskIndex(props) {
   const { ...rest } = props;
 
   // Chakra Color Mode
   const textColor = useColorModeValue("secondaryGray.900", "white");
+
+  // Extract the last two values from the data array
+  const data = barChartDataDailyTraffic[0].data;
+  const lastValue = data[data.length - 1]; // 5.7
+  const secondLastValue = data[data.length - 2]; // 4.2
+
+  // Calculate the percentage difference
+  const difference = (lastValue - secondLastValue)
+  const isPositive = difference >= 0;
   return (
     <Card align='center' direction='column' w='100%' {...rest}>
-      <Flex justify='space-between' align='start' px='10px' pt='5px'>
-        <Flex flexDirection='column' align='start' me='20px'>
+      <Flex align={{ base: "start", xl: "start" }}
+            justify={{ base: "space-between", xl: "space-between" }}
+            alignItems="center" w="100%">
+
+      
+
+            <Box align='start' flexDirection='column' me='20px'>         
+              <PrettyIcon
+                icon={MdEco}
+                backgroundColor={"#e4fff3"}
+                iconColor={"#03C46B"}
+              />
+            </Box>
+        <Flex flexDirection='column' align='center' w='100%'>
           <Flex w='100%'>
             <Text
               me='auto'
@@ -32,7 +55,8 @@ export default function RiskIndex(props) {
               Crop Health Score
             </Text>
           </Flex>
-          <Flex align='end'>
+
+          <Flex align='end' w='100%'> 
             <Text
               color={textColor}
               fontSize='64px'
@@ -40,6 +64,7 @@ export default function RiskIndex(props) {
               lineHeight='100%'>
               5.7
             </Text>
+
             <Text
               ms='6px'
               color='secondaryGray.600'
@@ -49,10 +74,13 @@ export default function RiskIndex(props) {
             </Text>
           </Flex>
         </Flex>
-        <Flex align='center'>
-          <Icon as={RiArrowUpSFill} color='green.500' />
-          <Text color='green.500' fontSize='sm' fontWeight='700'>
-            +2.45%
+        
+        <Flex align='end' ms='6px' alignItems='center'>
+        <Icon  as={isPositive ? RiArrowUpSFill : RiArrowDownSFill} 
+        color={isPositive ? 'green.500' : 'red.500'} 
+        />
+          <Text color={isPositive ? 'green.500' : 'red.500'} fontSize='sm' fontWeight='700'>
+            {isPositive ? '+' : ''}{difference.toFixed(2)}
           </Text>
         </Flex>
       </Flex>
